@@ -172,7 +172,7 @@ function ExpressionControls({
       {expressionFiles.length > 0 && (
         <div>
           <p className="text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Expression</p>
-          <div className="grid grid-cols-4 md:grid-cols-3 gap-1">
+          <div className="grid grid-cols-3 gap-1">
             {expressionFiles.map((expr) => (
               <button key={expr} onClick={() => setSelectedExpr(selectedExpr === expr ? null : expr)}
                 className={`relative rounded border overflow-hidden aspect-square transition-all ${
@@ -192,7 +192,7 @@ function ExpressionControls({
           <Separator />
           <div>
             <p className="text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Add-ons</p>
-            <div className="grid grid-cols-4 md:grid-cols-3 gap-1">
+            <div className="grid grid-cols-3 gap-1">
               {otherPartFiles.map((part) => {
                 const active = otherParts.has(part);
                 return (
