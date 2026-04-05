@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   Download, Search, RotateCcw, Users, Smile,
-  SlidersHorizontal, Link2, Check,
+  SlidersHorizontal, Link2, Check, Copy,
 } from "lucide-react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -246,6 +246,7 @@ export default function FacemakerClient({
   const [charSheetOpen, setCharSheetOpen] = useState(false);
   const [exprSheetOpen, setExprSheetOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copiedImg, setCopiedImg] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [rendering, setRendering] = useState(false);
@@ -253,28 +254,39 @@ export default function FacemakerClient({
 
   // ── Load data ──────────────────────────────────────────────────────────
 
+  const [loadError, setLoadError] = useState(false);
+
   useEffect(() => {
     async function init() {
-      const [facesData, faceUiData, charData, charTextData, trimRaw] = await Promise.all([
-        loadJson<{ faces: string[] }>("/data/faces.json", `${FALLBACK}/faces.json`),
-        loadJson<Record<string, FaceUiData>>("/data/face-ui.json", `${FALLBACK}/face-ui.json`),
-        loadJson<Record<string, string[]>>("/data/character.json", `${FALLBACK}/character.json`),
-        fetch("/api/character-text?lang=en").then((r) => r.json()) as Promise<Record<string, string[]>>,
-        loadJson<Record<string, TrimEntry>>(
-          "/data/datalist/generated/trimmed_image.json",
-          `${FALLBACK}/datalist/generated/trimmed_image.json`
-        ),
-      ]);
-      const names: Record<string, string> = {};
-      for (const [id, vals] of Object.entries(charData)) {
-        const name = charTextData[id]?.[0];
-        if (vals[0] && name) names[vals[0]] = name;
+      try {
+        const safeCharText = fetch("/api/character-text?lang=en")
+          .then((r) => r.json())
+          .catch(() => ({})) as Promise<Record<string, string[]>>;
+
+        const [facesData, faceUiData, charData, charTextData, trimRaw] = await Promise.all([
+          loadJson<{ faces: string[] }>("/data/faces.json", `${FALLBACK}/faces.json`),
+          loadJson<Record<string, FaceUiData>>("/data/face-ui.json", `${FALLBACK}/face-ui.json`),
+          loadJson<Record<string, string[]>>("/data/character.json", `${FALLBACK}/character.json`),
+          safeCharText,
+          loadJson<Record<string, TrimEntry>>(
+            "/data/datalist/generated/trimmed_image.json",
+            `${FALLBACK}/datalist/generated/trimmed_image.json`
+          ),
+        ]);
+        const names: Record<string, string> = {};
+        for (const [id, vals] of Object.entries(charData)) {
+          const name = charTextData[id]?.[0];
+          if (vals[0] && name) names[vals[0]] = name;
+        }
+        setFaces(facesData.faces);
+        setFaceUi(faceUiData);
+        setNameMap(names);
+        setTrimData(trimRaw);
+        setLoading(false);
+      } catch {
+        setLoadError(true);
+        setLoading(false);
       }
-      setFaces(facesData.faces);
-      setFaceUi(faceUiData);
-      setNameMap(names);
-      setTrimData(trimRaw);
-      setLoading(false);
     }
     init();
   }, []);
@@ -346,6 +358,19 @@ export default function FacemakerClient({
     a.click();
   }
 
+  async function handleCopyImage() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+        setCopiedImg(true);
+        setTimeout(() => setCopiedImg(false), 2000);
+      } catch { /* clipboard not supported */ }
+    });
+  }
+
   function handleShare() {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
@@ -363,6 +388,16 @@ export default function FacemakerClient({
       <div className="flex items-center justify-center h-screen flex-col gap-4">
         <p className="text-muted-foreground text-sm">Loading data…</p>
         <Progress value={0} className="w-48" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex items-center justify-center h-screen flex-col gap-4 p-6 text-center">
+        <p className="font-semibold">Failed to load data</p>
+        <p className="text-muted-foreground text-sm">Check your connection and try again.</p>
+        <Button onClick={() => window.location.reload()}>Retry</Button>
       </div>
     );
   }
@@ -450,10 +485,14 @@ export default function FacemakerClient({
                 </Button>
                 <Button variant="outline" onClick={handleShare} className="gap-2" disabled={rendering}>
                   {copied ? <Check className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
-                  {copied ? "Copied!" : "Share"}
+                  <span className="hidden sm:inline">{copied ? "Copied!" : "Share"}</span>
                 </Button>
                 <Button onClick={handleDownload} className="gap-2" disabled={rendering}>
                   <Download className="h-4 w-4" /> Download PNG
+                </Button>
+                <Button variant="outline" onClick={handleCopyImage} className="gap-2" disabled={rendering}>
+                  {copiedImg ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  <span className="hidden sm:inline">{copiedImg ? "Copied!" : "Copy Image"}</span>
                 </Button>
               </div>
             </>
