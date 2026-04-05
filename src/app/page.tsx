@@ -1,260 +1,174 @@
 "use client";
-import { useState } from "react";
+import { useTheme } from "next-themes";
 import {
-  AppBar,
-  Box,
-  CssBaseline,
-  Divider,
-  Drawer,
-  IconButton,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Toolbar,
-  Typography,
-  Button,
-  Card,
-  CardContent,
-  CardActions,
-  Grid,
-  Avatar,
-  Chip,
-  LinearProgress,
-  Badge,
-} from "@mui/material";
-import { useTheme } from "@mui/material/styles";
-import MenuIcon from "@mui/icons-material/Menu";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import FaceIcon from "@mui/icons-material/Face";
-import PaletteIcon from "@mui/icons-material/Palette";
-import SettingsIcon from "@mui/icons-material/Settings";
-import NotificationsIcon from "@mui/icons-material/Notifications";
-import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-import HistoryIcon from "@mui/icons-material/History";
-import Brightness4Icon from "@mui/icons-material/Brightness4";
-import Brightness7Icon from "@mui/icons-material/Brightness7";
-import { useColorMode } from "./ColorModeContext";
-
-const DRAWER_WIDTH = 240;
+  SidebarProvider,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarInset,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import {
+  LayoutDashboard,
+  Smile,
+  Palette,
+  History,
+  Settings,
+  Bell,
+  CircleUser,
+  ImagePlus,
+  Sparkles,
+  Moon,
+  Sun,
+  ExternalLink,
+} from "lucide-react";
+import Link from "next/link";
 
 const navItems = [
-  { label: "Dashboard", icon: <DashboardIcon /> },
-  { label: "Face Maker", icon: <FaceIcon /> },
-  { label: "Templates", icon: <PaletteIcon /> },
-  { label: "History", icon: <HistoryIcon /> },
-  { label: "Settings", icon: <SettingsIcon /> },
+  { label: "Dashboard", icon: LayoutDashboard },
+  { label: "Face Maker", icon: Smile },
+  { label: "Templates", icon: Palette },
+  { label: "History", icon: History },
+  { label: "Settings", icon: Settings },
+];
+
+const stats = [
+  { label: "Total Faces", value: "128", icon: Smile },
+  { label: "Templates Used", value: "34", icon: Palette },
+  { label: "AI Generations", value: "512", icon: Sparkles },
+  { label: "Uploads", value: "76", icon: ImagePlus },
 ];
 
 const recentProjects = [
-  { name: "Portrait Alpha", status: "Complete", progress: 100, color: "success" },
-  { name: "Avatar Set B", status: "In Progress", progress: 65, color: "primary" },
-  { name: "Style Pack 3", status: "Draft", progress: 20, color: "warning" },
+  { name: "Portrait Alpha", status: "Complete", progress: 100, variant: "default" as const },
+  { name: "Avatar Set B", status: "In Progress", progress: 65, variant: "secondary" as const },
+  { name: "Style Pack 3", status: "Draft", progress: 20, variant: "outline" as const },
 ];
 
 export default function Home() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [activeNav, setActiveNav] = useState("Dashboard");
-  const { toggleColorMode } = useColorMode();
-  const theme = useTheme();
-
-  const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
-
-  const drawer = (
-    <Box>
-      <Toolbar>
-        <FaceIcon sx={{ mr: 1, color: "primary.main" }} />
-        <Typography variant="h6" fontWeight={700} color="primary">
-          WF Facemaker
-        </Typography>
-      </Toolbar>
-      <Divider />
-      <List>
-        {navItems.map(({ label, icon }) => (
-          <ListItem key={label} disablePadding>
-            <ListItemButton
-              selected={activeNav === label}
-              onClick={() => setActiveNav(label)}
-              sx={{
-                borderRadius: 2,
-                mx: 1,
-                "&.Mui-selected": {
-                  backgroundColor: "primary.main",
-                  color: "white",
-                  "& .MuiListItemIcon-root": { color: "white" },
-                  "&:hover": { backgroundColor: "primary.dark" },
-                },
-              }}
-            >
-              <ListItemIcon sx={{ minWidth: 40 }}>{icon}</ListItemIcon>
-              <ListItemText primary={label} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-    </Box>
-  );
+  const { theme, setTheme } = useTheme();
 
   return (
-    <Box sx={{ display: "flex" }}>
-      <CssBaseline />
+    <SidebarProvider>
+      <Sidebar>
+        <SidebarHeader className="p-4">
+          <div className="flex items-center gap-2">
+            <Smile className="h-5 w-5 text-primary" />
+            <span className="font-bold text-lg">WF Facemaker</span>
+          </div>
+        </SidebarHeader>
+        <Separator />
+        <SidebarContent className="pt-2">
+          <SidebarMenu>
+            {navItems.map(({ label, icon: Icon }) => (
+              <SidebarMenuItem key={label}>
+                <SidebarMenuButton>
+                  <Icon className="h-4 w-4" />
+                  <span>{label}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarContent>
+      </Sidebar>
 
-      {/* AppBar */}
-      <AppBar
-        position="fixed"
-        sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, boxShadow: 1 }}
-      >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: "none" } }}
+      <SidebarInset>
+        {/* Top bar */}
+        <header className="flex h-14 items-center gap-3 border-b px-4 sticky top-0 bg-background z-10">
+          <SidebarTrigger />
+          <span className="font-semibold flex-1">Dashboard</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            aria-label="Toggle dark mode"
           >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" fontWeight={700} sx={{ flexGrow: 1 }}>
-            {activeNav}
-          </Typography>
-          <IconButton color="inherit" onClick={toggleColorMode} title="Toggle dark mode">
-            {theme.palette.mode === "dark" ? <Brightness7Icon /> : <Brightness4Icon />}
-          </IconButton>
-          <IconButton color="inherit">
-            <Badge badgeContent={3} color="error">
-              <NotificationsIcon />
-            </Badge>
-          </IconButton>
-          <IconButton color="inherit" sx={{ ml: 1 }}>
-            <AccountCircleIcon />
-          </IconButton>
-        </Toolbar>
-      </AppBar>
+            <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          </Button>
+          <Button variant="ghost" size="icon" className="relative">
+            <Bell className="h-4 w-4" />
+            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
+          </Button>
+          <Button variant="ghost" size="icon">
+            <CircleUser className="h-4 w-4" />
+          </Button>
+        </header>
 
-      {/* Sidebar — mobile */}
-      <Drawer
-        variant="temporary"
-        open={mobileOpen}
-        onClose={handleDrawerToggle}
-        ModalProps={{ keepMounted: true }}
-        sx={{
-          display: { xs: "block", sm: "none" },
-          "& .MuiDrawer-paper": { width: DRAWER_WIDTH },
-        }}
-      >
-        {drawer}
-      </Drawer>
-
-      {/* Sidebar — desktop */}
-      <Drawer
-        variant="permanent"
-        sx={{
-          display: { xs: "none", sm: "block" },
-          "& .MuiDrawer-paper": { width: DRAWER_WIDTH, boxSizing: "border-box" },
-        }}
-        open
-      >
-        {drawer}
-      </Drawer>
-
-      {/* Main content */}
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          p: 3,
-          width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
-          backgroundColor: "background.default",
-          minHeight: "100vh",
-        }}
-      >
-        <Toolbar />
-
-        {/* Stats row */}
-        <Grid container spacing={3} sx={{ mb: 3 }}>
-          {[
-            { label: "Total Faces", value: "128", icon: <FaceIcon fontSize="large" />, color: "#1976d2" },
-            { label: "Templates Used", value: "34", icon: <PaletteIcon fontSize="large" />, color: "#9c27b0" },
-            { label: "AI Generations", value: "512", icon: <AutoAwesomeIcon fontSize="large" />, color: "#ed6c02" },
-            { label: "Uploads", value: "76", icon: <AddPhotoAlternateIcon fontSize="large" />, color: "#2e7d32" },
-          ].map(({ label, value, icon, color }) => (
-            <Grid size={{ xs: 12, sm: 6, md: 3 }} key={label}>
-              <Card elevation={2}>
-                <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <Avatar sx={{ bgcolor: color, width: 52, height: 52 }}>{icon}</Avatar>
-                  <Box>
-                    <Typography variant="h5" fontWeight={700}>{value}</Typography>
-                    <Typography variant="body2" color="text.secondary">{label}</Typography>
-                  </Box>
+        <main className="p-6 space-y-6">
+          {/* Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {stats.map(({ label, value, icon: Icon }) => (
+              <Card key={label}>
+                <CardContent className="flex items-center gap-4 pt-6">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10">
+                    <Icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{value}</p>
+                    <p className="text-sm text-muted-foreground">{label}</p>
+                  </div>
                 </CardContent>
               </Card>
-            </Grid>
-          ))}
-        </Grid>
+            ))}
+          </div>
 
-        {/* Recent Projects + Quick Actions */}
-        <Grid container spacing={3}>
-          <Grid size={{ xs: 12, md: 8 }}>
-            <Card elevation={2}>
-              <CardContent>
-                <Typography variant="h6" fontWeight={600} gutterBottom>
-                  Recent Projects
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-                {recentProjects.map(({ name, status, progress, color }) => (
-                  <Box key={name} sx={{ mb: 2 }}>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
-                      <Typography variant="body1" fontWeight={500}>{name}</Typography>
-                      <Chip
-                        label={status}
-                        size="small"
-                        color={color as "success" | "primary" | "warning"}
-                        variant="outlined"
-                      />
-                    </Box>
-                    <LinearProgress
-                      variant="determinate"
-                      value={progress}
-                      color={color as "success" | "primary" | "warning"}
-                      sx={{ borderRadius: 1, height: 6 }}
-                    />
-                  </Box>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Recent Projects */}
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle>Recent Projects</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {recentProjects.map(({ name, status, progress, variant }) => (
+                  <div key={name} className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{name}</span>
+                      <Badge variant={variant}>{status}</Badge>
+                    </div>
+                    <Progress value={progress} className="h-1.5" />
+                  </div>
                 ))}
               </CardContent>
-              <CardActions sx={{ px: 2, pb: 2 }}>
-                <Button variant="outlined" size="small">View All Projects</Button>
-              </CardActions>
+              <CardFooter>
+                <Button variant="outline" size="sm">View All Projects</Button>
+              </CardFooter>
             </Card>
-          </Grid>
 
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Card elevation={2}>
-              <CardContent>
-                <Typography variant="h6" fontWeight={600} gutterBottom>
-                  Quick Actions
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-                  <Button variant="contained" startIcon={<FaceIcon />} fullWidth>
-                    New Face
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                <Link href="/facebuilder" className="w-full">
+                  <Button className="w-full justify-start gap-2">
+                    <Smile className="h-4 w-4" /> Open Face Maker
+                    <ExternalLink className="h-3 w-3 ml-auto" />
                   </Button>
-                  <Button variant="contained" color="secondary" startIcon={<AddPhotoAlternateIcon />} fullWidth>
-                    Upload Photo
-                  </Button>
-                  <Button variant="outlined" startIcon={<AutoAwesomeIcon />} fullWidth>
-                    AI Generate
-                  </Button>
-                  <Button variant="outlined" color="secondary" startIcon={<PaletteIcon />} fullWidth>
-                    Browse Templates
-                  </Button>
-                </Box>
+                </Link>
+                <Button variant="secondary" className="w-full justify-start gap-2">
+                  <ImagePlus className="h-4 w-4" /> Upload Photo
+                </Button>
+                <Button variant="outline" className="w-full justify-start gap-2">
+                  <Sparkles className="h-4 w-4" /> AI Generate
+                </Button>
+                <Button variant="outline" className="w-full justify-start gap-2">
+                  <Palette className="h-4 w-4" /> Browse Templates
+                </Button>
               </CardContent>
             </Card>
-          </Grid>
-        </Grid>
-      </Box>
-    </Box>
+          </div>
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
