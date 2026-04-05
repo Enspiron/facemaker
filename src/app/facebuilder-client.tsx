@@ -76,7 +76,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 // ─── CharacterList ─────────────────────────────────────────────────────────
 
 function NpcThumb({ face, faceUi, size }: { face: string; faceUi: Record<string, FaceUiData>; size: number }) {
-  const stems = (faceUi[face]?.story.files ?? []).map((f) => f.replace(/\.png$/, ""));
+  const stems = (faceUi[face]?.story?.files ?? []).map((f) => f.replace(/\.png$/, ""));
   const baseStem = stems.find((s) => s === "base_0") ?? stems.find((s) => /^base/.test(s)) ?? null;
   const hasNormal = stems.includes("normal");
   const sz = `${size}px`;
