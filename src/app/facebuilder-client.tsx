@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   Download, Search, RotateCcw, Users, Smile,
-  SlidersHorizontal, Link2, Check, Copy,
+  SlidersHorizontal, Link2, Check, Copy, LayoutGrid, List,
 } from "lucide-react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -75,6 +75,34 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 // ─── CharacterList ─────────────────────────────────────────────────────────
 
+function NpcThumb({ face, faceUi, size }: { face: string; faceUi: Record<string, FaceUiData>; size: number }) {
+  const stems = (faceUi[face]?.story.files ?? []).map((f) => f.replace(/\.png$/, ""));
+  const baseStem = stems.find((s) => s === "base_0") ?? stems.find((s) => /^base/.test(s)) ?? null;
+  const hasNormal = stems.includes("normal");
+  const sz = `${size}px`;
+
+  if (!baseStem) {
+    return (
+      <div style={{ width: sz, height: sz }} className="rounded bg-muted shrink-0 flex items-center justify-center">
+        <Smile className="h-4 w-4 text-muted-foreground/40" />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ width: sz, height: sz }} className="relative rounded overflow-hidden bg-muted shrink-0">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={storyUrl(face, baseStem)} alt="" className="absolute inset-0 w-full h-full object-cover"
+        onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
+      {hasNormal && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={storyUrl(face, "normal")} alt="" className="absolute inset-0 w-full h-full object-cover"
+          onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
+      )}
+    </div>
+  );
+}
+
 function CharacterList({
   faces, faceUi, nameMap, search, setSearch,
   filter, setFilter, selectedFace, onSelect,
@@ -84,6 +112,8 @@ function CharacterList({
   filter: CharFilter; setFilter: (v: CharFilter) => void;
   selectedFace: string | null; onSelect: (face: string) => void;
 }) {
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+
   const filtered = faces.filter((face) => {
     const isPlayable = faceUi[face]?.ui.files.includes("battle_member_status_0.png");
     if (filter === "playable" && !isPlayable) return false;
@@ -98,10 +128,22 @@ function CharacterList({
   return (
     <div className="flex flex-col h-full">
       <div className="p-3 border-b space-y-2 shrink-0">
-        <div className="relative">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input className="pl-7 h-8 text-sm" placeholder="Search…" value={search}
-            onChange={(e) => setSearch(e.target.value)} />
+        <div className="flex gap-1.5">
+          <div className="relative flex-1">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input className="pl-7 h-8 text-sm" placeholder="Search…" value={search}
+              onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <div className="flex rounded-md border overflow-hidden shrink-0">
+            {(["list", "grid"] as const).map((mode) => (
+              <button key={mode} onClick={() => setViewMode(mode)}
+                className={`flex items-center justify-center w-8 h-8 transition-colors ${
+                  viewMode === mode ? "bg-primary text-primary-foreground" : "hover:bg-accent"
+                }`}>
+                {mode === "list" ? <List className="h-3.5 w-3.5" /> : <LayoutGrid className="h-3.5 w-3.5" />}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="flex rounded-md border overflow-hidden text-xs">
           {(["all", "npc", "playable"] as CharFilter[]).map((opt) => (
@@ -112,30 +154,54 @@ function CharacterList({
           ))}
         </div>
       </div>
+
       <div className="flex-1 overflow-y-auto">
-        {filtered.map((face) => {
-          const isPlayable = faceUi[face]?.ui.files.includes("battle_member_status_0.png");
-          const name = nameMap[face] ?? face;
-          return (
-            <button key={face} onClick={() => onSelect(face)}
-              className={`w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-accent transition-colors ${selectedFace === face ? "bg-accent" : ""}`}>
-              {isPlayable ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={thumbnailUrl(face)} alt=""
-                  className="w-8 h-8 rounded object-cover shrink-0 bg-muted"
-                  onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
-              ) : (
-                <div className="w-8 h-8 rounded bg-muted shrink-0 flex items-center justify-center">
-                  <Smile className="h-4 w-4 text-muted-foreground/40" />
+        {viewMode === "list" ? (
+          filtered.map((face) => {
+            const isPlayable = faceUi[face]?.ui.files.includes("battle_member_status_0.png");
+            const name = nameMap[face] ?? face;
+            return (
+              <button key={face} onClick={() => onSelect(face)}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-accent transition-colors ${selectedFace === face ? "bg-accent" : ""}`}>
+                {isPlayable ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={thumbnailUrl(face)} alt=""
+                    className="w-8 h-8 rounded object-cover shrink-0 bg-muted"
+                    onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
+                ) : (
+                  <NpcThumb face={face} faceUi={faceUi} size={32} />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium truncate">{name}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{face}</p>
                 </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium truncate">{name}</p>
-                <p className="text-[10px] text-muted-foreground truncate">{face}</p>
-              </div>
-            </button>
-          );
-        })}
+              </button>
+            );
+          })
+        ) : (
+          <div className="grid grid-cols-3 gap-1.5 p-2">
+            {filtered.map((face) => {
+              const isPlayable = faceUi[face]?.ui.files.includes("battle_member_status_0.png");
+              const name = nameMap[face] ?? face;
+              return (
+                <button key={face} onClick={() => onSelect(face)}
+                  className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border transition-colors ${
+                    selectedFace === face ? "border-primary bg-accent ring-1 ring-primary" : "border-transparent hover:bg-accent"
+                  }`}>
+                  {isPlayable ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={thumbnailUrl(face)} alt=""
+                      className="w-full aspect-square rounded object-cover bg-muted"
+                      onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
+                  ) : (
+                    <NpcThumb face={face} faceUi={faceUi} size={64} />
+                  )}
+                  <p className="text-[9px] text-center leading-tight truncate w-full">{name}</p>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
