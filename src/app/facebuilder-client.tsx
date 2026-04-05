@@ -75,39 +75,77 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 // ─── CharacterList ─────────────────────────────────────────────────────────
 
-function NpcThumb({ face, faceUi, size }: { face: string; faceUi: Record<string, FaceUiData>; size: number }) {
+function NpcThumb({ face, faceUi, trimData, size }: {
+  face: string; faceUi: Record<string, FaceUiData>; trimData: Record<string, TrimEntry>; size: number;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const stems = (faceUi[face]?.story?.files ?? []).map((f) => f.replace(/\.png$/, ""));
-  const baseStem = stems.find((s) => s === "base_0") ?? stems.find((s) => /^base/.test(s)) ?? null;
-  const hasNormal = stems.includes("normal");
-  const sz = `${size}px`;
+  const baseStem = stems.find((s) => s === "base_0") ?? stems.find((s) => isBase(s)) ?? null;
+  const exprStem = stems.includes("normal") ? "normal" : null;
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !baseStem) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    canvas.width = size;
+    canvas.height = size;
+
+    async function draw() {
+      const layers = [baseStem!, ...(exprStem ? [exprStem] : [])];
+
+      // Determine crop center from expression trim, else base trim, else canvas center
+      const exprKey = `character/${face}/ui/story/${exprStem ?? baseStem}`;
+      const trim = trimData[exprKey];
+      // Expression sprites average ~163×142; approximate face center
+      const faceCX = trim ? parseInt(trim[0]) + 81 : 285;
+      const faceCY = trim ? parseInt(trim[1]) + 71 : 355;
+
+      // Crop a 220×220 region centered on the face, then scale to thumbnail
+      const CROP = 220;
+      const cropX = Math.max(0, faceCX - CROP / 2);
+      const cropY = Math.max(0, faceCY - CROP / 2);
+
+      // Draw layers onto offscreen canvas at full 570×690 resolution
+      const off = document.createElement("canvas");
+      off.width = 570; off.height = 690;
+      const offCtx = off.getContext("2d")!;
+
+      for (const stem of layers) {
+        const t = trimData[`character/${face}/ui/story/${stem}`];
+        const x = t ? parseInt(t[0]) : 0;
+        const y = t ? parseInt(t[1]) : 0;
+        try {
+          offCtx.drawImage(await loadImage(storyUrl(face, stem)), x, y);
+        } catch { /* skip missing sprites */ }
+      }
+
+      ctx!.clearRect(0, 0, size, size);
+      ctx!.drawImage(off, cropX, cropY, CROP, CROP, 0, 0, size, size);
+    }
+
+    draw();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [face, baseStem, exprStem, size]);
 
   if (!baseStem) {
     return (
-      <div style={{ width: sz, height: sz }} className="rounded bg-muted shrink-0 flex items-center justify-center">
+      <div style={{ width: size, height: size }} className="rounded bg-muted shrink-0 flex items-center justify-center">
         <Smile className="h-4 w-4 text-muted-foreground/40" />
       </div>
     );
   }
 
-  return (
-    <div style={{ width: sz, height: sz }} className="relative rounded overflow-hidden bg-muted shrink-0">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={storyUrl(face, baseStem)} alt="" className="absolute inset-0 w-full h-full object-cover"
-        onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
-      {hasNormal && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={storyUrl(face, "normal")} alt="" className="absolute inset-0 w-full h-full object-cover"
-          onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
-      )}
-    </div>
-  );
+  return <canvas ref={canvasRef} style={{ width: size, height: size, imageRendering: "pixelated" }} className="rounded shrink-0 bg-muted" />;
 }
 
 function CharacterList({
-  faces, faceUi, nameMap, search, setSearch,
+  faces, faceUi, nameMap, trimData, search, setSearch,
   filter, setFilter, selectedFace, onSelect,
 }: {
   faces: string[]; faceUi: Record<string, FaceUiData>; nameMap: Record<string, string>;
+  trimData: Record<string, TrimEntry>;
   search: string; setSearch: (v: string) => void;
   filter: CharFilter; setFilter: (v: CharFilter) => void;
   selectedFace: string | null; onSelect: (face: string) => void;
@@ -169,7 +207,7 @@ function CharacterList({
                     className="w-8 h-8 rounded object-cover shrink-0 bg-muted"
                     onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
                 ) : (
-                  <NpcThumb face={face} faceUi={faceUi} size={32} />
+                  <NpcThumb face={face} faceUi={faceUi} trimData={trimData} size={32} />
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium truncate">{name}</p>
@@ -194,7 +232,7 @@ function CharacterList({
                       className="w-full aspect-square rounded object-cover bg-muted"
                       onError={(e) => ((e.target as HTMLImageElement).style.visibility = "hidden")} />
                   ) : (
-                    <NpcThumb face={face} faceUi={faceUi} size={64} />
+                    <NpcThumb face={face} faceUi={faceUi} trimData={trimData} size={64} />
                   )}
                   <p className="text-[9px] text-center leading-tight truncate w-full">{name}</p>
                 </button>
@@ -508,7 +546,7 @@ export default function FacemakerClient({
     );
   }
 
-  const charListProps = { faces, faceUi, nameMap, search, setSearch, filter, setFilter, selectedFace, onSelect: handleSelectFace };
+  const charListProps = { faces, faceUi, nameMap, trimData, search, setSearch, filter, setFilter, selectedFace, onSelect: handleSelectFace };
   const exprControlProps = selectedFace
     ? { selectedFace, baseVariant, setBaseVariant, hasVariant1, expressionFiles, otherPartFiles, selectedExpr, setSelectedExpr, otherParts, setOtherParts, onReset: () => { setSelectedExpr(null); setOtherParts(new Set()); setBaseVariant("0"); } }
     : null;
