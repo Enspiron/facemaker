@@ -143,17 +143,47 @@ function CharacterList({
 
 // ─── ExpressionControls ────────────────────────────────────────────────────
 
+function GridItem({ active, onClick, src, label }: { active: boolean; onClick: () => void; src: string; label: string }) {
+  return (
+    <button onClick={onClick}
+      className={`relative rounded border overflow-hidden aspect-square transition-all ${
+        active ? "border-primary ring-1 ring-primary" : "border-border hover:border-primary/50"
+      }`} title={label}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt={label} className="w-full h-full object-cover"
+        onError={(e) => ((e.target as HTMLImageElement).style.opacity = "0.2")} />
+      <span className="absolute bottom-0 left-0 right-0 text-[8px] text-center bg-black/50 text-white px-0.5 truncate">{label}</span>
+    </button>
+  );
+}
+
+function ListItem({ active, onClick, src, label }: { active: boolean; onClick: () => void; src: string; label: string }) {
+  return (
+    <button onClick={onClick}
+      className={`flex items-center gap-3 w-full px-3 py-2 rounded-lg border transition-all text-left ${
+        active ? "border-primary bg-accent ring-1 ring-primary" : "border-transparent hover:bg-accent"
+      }`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt={label} className="w-10 h-10 rounded object-cover shrink-0 bg-muted"
+        onError={(e) => ((e.target as HTMLImageElement).style.opacity = "0.2")} />
+      <span className="text-sm truncate">{label}</span>
+    </button>
+  );
+}
+
 function ExpressionControls({
   selectedFace, baseVariant, setBaseVariant, hasVariant1,
   expressionFiles, otherPartFiles, selectedExpr, setSelectedExpr,
-  otherParts, setOtherParts, onReset,
+  otherParts, setOtherParts, onReset, layout = "grid",
 }: {
   selectedFace: string; baseVariant: "0" | "1"; setBaseVariant: (v: "0" | "1") => void;
   hasVariant1: boolean; expressionFiles: string[]; otherPartFiles: string[];
   selectedExpr: string | null; setSelectedExpr: (v: string | null) => void;
   otherParts: Set<string>; setOtherParts: (fn: (p: Set<string>) => Set<string>) => void;
-  onReset: () => void;
+  onReset: () => void; layout?: "grid" | "list";
 }) {
+  const isList = layout === "list";
+
   return (
     <div className="p-3 space-y-4">
       {hasVariant1 && (
@@ -172,19 +202,23 @@ function ExpressionControls({
       {expressionFiles.length > 0 && (
         <div>
           <p className="text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Expression</p>
-          <div className="grid grid-cols-3 gap-1">
-            {expressionFiles.map((expr) => (
-              <button key={expr} onClick={() => setSelectedExpr(selectedExpr === expr ? null : expr)}
-                className={`relative rounded border overflow-hidden aspect-square transition-all ${
-                  selectedExpr === expr ? "border-primary ring-1 ring-primary" : "border-border hover:border-primary/50"
-                }`} title={expr}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={storyUrl(selectedFace, expr)} alt={expr} className="w-full h-full object-cover"
-                  onError={(e) => ((e.target as HTMLImageElement).style.opacity = "0.2")} />
-                <span className="absolute bottom-0 left-0 right-0 text-[8px] text-center bg-black/50 text-white px-0.5 truncate">{expr}</span>
-              </button>
-            ))}
-          </div>
+          {isList ? (
+            <div className="flex flex-col gap-1">
+              {expressionFiles.map((expr) => (
+                <ListItem key={expr} active={selectedExpr === expr}
+                  onClick={() => setSelectedExpr(selectedExpr === expr ? null : expr)}
+                  src={storyUrl(selectedFace, expr)} label={expr} />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-1">
+              {expressionFiles.map((expr) => (
+                <GridItem key={expr} active={selectedExpr === expr}
+                  onClick={() => setSelectedExpr(selectedExpr === expr ? null : expr)}
+                  src={storyUrl(selectedFace, expr)} label={expr} />
+              ))}
+            </div>
+          )}
         </div>
       )}
       {otherPartFiles.length > 0 && (
@@ -192,23 +226,29 @@ function ExpressionControls({
           <Separator />
           <div>
             <p className="text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Add-ons</p>
-            <div className="grid grid-cols-3 gap-1">
-              {otherPartFiles.map((part) => {
-                const active = otherParts.has(part);
-                return (
-                  <button key={part}
-                    onClick={() => setOtherParts((prev) => { const n = new Set(prev); active ? n.delete(part) : n.add(part); return n; })}
-                    className={`relative rounded border overflow-hidden aspect-square transition-all ${
-                      active ? "border-primary ring-1 ring-primary" : "border-border hover:border-primary/50"
-                    }`} title={part}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={storyUrl(selectedFace, part)} alt={part} className="w-full h-full object-cover"
-                      onError={(e) => ((e.target as HTMLImageElement).style.opacity = "0.2")} />
-                    <span className="absolute bottom-0 left-0 right-0 text-[8px] text-center bg-black/50 text-white px-0.5 truncate">{part}</span>
-                  </button>
-                );
-              })}
-            </div>
+            {isList ? (
+              <div className="flex flex-col gap-1">
+                {otherPartFiles.map((part) => {
+                  const active = otherParts.has(part);
+                  return (
+                    <ListItem key={part} active={active}
+                      onClick={() => setOtherParts((prev) => { const n = new Set(prev); active ? n.delete(part) : n.add(part); return n; })}
+                      src={storyUrl(selectedFace, part)} label={part} />
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-1">
+                {otherPartFiles.map((part) => {
+                  const active = otherParts.has(part);
+                  return (
+                    <GridItem key={part} active={active}
+                      onClick={() => setOtherParts((prev) => { const n = new Set(prev); active ? n.delete(part) : n.add(part); return n; })}
+                      src={storyUrl(selectedFace, part)} label={part} />
+                  );
+                })}
+              </div>
+            )}
           </div>
         </>
       )}
@@ -520,7 +560,7 @@ export default function FacemakerClient({
                 <Smile className="h-4 w-4" /> Expressions — {displayName}
               </SheetTitle>
             </SheetHeader>
-            <ExpressionControls {...exprControlProps} />
+            <ExpressionControls {...exprControlProps} layout="list" />
           </SheetContent>
         </Sheet>
       )}
