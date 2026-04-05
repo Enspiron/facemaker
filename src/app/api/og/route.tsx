@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
   const valid = sprites.filter(Boolean) as { dataUrl: string; w: number; h: number; x: number; y: number }[];
 
   return new ImageResponse(
-    <div style={{ display: "flex", width: canvasW, height: canvasH, position: "relative", background: "transparent" }}>
+    <div style={{ display: "flex", width: canvasW, height: canvasH, position: "relative", background: "#1a1a1a" }}>
       {valid.map((s, i) => (
         // eslint-disable-next-line @next/next/no-img-element
         <img

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { headers } from "next/headers";
 import FacemakerClient from "./facebuilder-client";
 
 interface Props {
@@ -12,17 +13,24 @@ interface Props {
 }
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
-  const { face, expr, parts } = await searchParams;
+  const { face, expr, base, parts } = await searchParams;
   if (!face) return { title: "WF Facemaker" };
 
+  // Derive the absolute base URL from the incoming request host
+  const h = await headers();
+  const host = h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  const metadataBase = new URL(`${proto}://${host}`);
+
   const label = [face, expr, ...(parts?.split(",").filter(Boolean) ?? [])].join(" + ");
-  const ogUrl = `/api/og?${new URLSearchParams({
-    face,
-    ...(expr ? { expr } : {}),
-    ...(parts ? { parts } : {}),
-  })}`;
+  const ogParams = new URLSearchParams({ face });
+  if (expr) ogParams.set("expr", expr);
+  if (base && base !== "0") ogParams.set("base", base);
+  if (parts) ogParams.set("parts", parts);
+  const ogUrl = `/api/og?${ogParams}`;
 
   return {
+    metadataBase,
     title: `${face} — WF Facemaker`,
     description: `Face composition: ${label}`,
     openGraph: {
